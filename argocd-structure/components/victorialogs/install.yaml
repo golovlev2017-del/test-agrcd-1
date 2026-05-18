@@ -1,6 +1,9 @@
 # VictoriaLogs Installation for ArgoCD
-# Source: https://victoriametrics.github.io/helm-charts
-# Offline mode: images from harbor.local.test:8443
+# OFFLINE MODE: Все чарты должны быть предварительно загружены в локальный репозиторий
+# Инструкция по подготовке:
+#   1. helm pull victoriametrics/victorialogs-cluster --version 0.8.0
+#   2. Загрузить chart в локальный репозиторий (Harbor/Nexus/ChartMuseum)
+#   3. Все образы должны быть в harbor.local.test:8443
 
 apiVersion: v1
 kind: Namespace
@@ -12,11 +15,13 @@ metadata:
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: HelmRepository
 metadata:
-  name: victorialogs
+  name: victorialogs-local
   namespace: logging
 spec:
   interval: 1h
-  url: https://victoriametrics.github.io/helm-charts
+  # OFFLINE: Укажите URL вашего локального репозитория чартов
+  url: http://harbor.local.test:8443/chartrepo/library
+  type: default
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -31,7 +36,7 @@ spec:
       version: "0.8.0"
       sourceRef:
         kind: HelmRepository
-        name: victorialogs
+        name: victorialogs-local
         namespace: logging
   values:
     # VictoriaLogs Insert component
