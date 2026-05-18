@@ -1,0 +1,105 @@
+# MetalLB Installation for ArgoCD
+# Source: https://metallb.universe.tf/installation/
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: metallb-system
+  labels:
+    app.kubernetes.io/name: metallb
+    app.kubernetes.io/component: controller
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: metallb
+  namespace: metallb-system
+spec:
+  interval: 1h
+  url: https://metallb.github.io/metallb
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: metallb
+  namespace: metallb-system
+spec:
+  interval: 1h
+  chart:
+    spec:
+      chart: metallb
+      version: "0.14.3"
+      sourceRef:
+        kind: HelmRepository
+        name: metallb
+        namespace: metallb-system
+  values:
+    controller:
+      replicaCount: 1
+      resources:
+        requests:
+          cpu: 50m
+          memory: 64Mi
+        limits:
+          cpu: 200m
+          memory: 256Mi
+    speaker:
+      resources:
+        requests:
+          cpu: 50m
+          memory: 64Mi
+        limits:
+          cpu: 200m
+          memory: 256Mi
+    frr:
+      enabled: false
+    prometheus:
+      enabled: true
+      serviceMonitor:
+        enabled: true
+---
+# Пример IPAddressPool и L2Advertisement
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: main-pool
+  namespace: metallb-system
+spec:
+  addresses:
+  - 192.168.1.240-192.168.1.250
+  autoAssign: true
+---
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+  name: l2-advertisement
+  namespace: metallb-system
+spec:
+  ipAddressPools:
+  - main-pool
+  nodeSelectors:
+  - matchLabels:
+      kubernetes.io/os: linux
+---
+# Пример для BGP (если используется)
+# apiVersion: metallb.io/v1beta1
+# kind: BGPPeer
+# metadata:
+#   name: bgp-peer
+#   namespace: metallb-system
+# spec:
+#   myASN: 64512
+#   peerASN: 64513
+#   peerAddress: 192.168.1.1
+#   holdTime: 180s
+# ---
+# apiVersion: metallb.io/v1beta1
+# kind: BGPAdvertisement
+# metadata:
+#   name: bgp-advertisement
+#   namespace: metallb-system
+# spec:
+#   ipAddressPools:
+#   - main-pool
+#   peers:
+#   - bgp-peer

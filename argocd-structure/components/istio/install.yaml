@@ -1,0 +1,158 @@
+# Istio Installation for ArgoCD
+# Source: https://istio.io/latest/docs/setup/install/
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: istio-system
+  labels:
+    app.kubernetes.io/name: istio-system
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: istio
+  namespace: istio-system
+spec:
+  interval: 1h
+  url: https://istio-release.storage.googleapis.com/charts
+---
+# Istio Base (CRDs)
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: istio-base
+  namespace: istio-system
+spec:
+  interval: 1h
+  chart:
+    spec:
+      chart: base
+      version: "1.20.2"
+      sourceRef:
+        kind: HelmRepository
+        name: istio
+        namespace: istio-system
+  values: {}
+---
+# Istiod (Control Plane)
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: istiod
+  namespace: istio-system
+spec:
+  interval: 1h
+  chart:
+    spec:
+      chart: istiod
+      version: "1.20.2"
+      sourceRef:
+        kind: HelmRepository
+        name: istio
+        namespace: istio-system
+  values:
+    pilot:
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+      autoscaleEnabled: true
+      autoscaleMin: 1
+      autoscaleMax: 5
+    global:
+      proxy:
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      tracer:
+        zipkin:
+          address: zipkin.istio-system.svc.cluster.local:9411
+---
+# Istio Ingress Gateway
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: istio-ingressgateway
+  namespace: istio-system
+spec:
+  interval: 1h
+  chart:
+    spec:
+      chart: gateway
+      version: "1.20.2"
+      sourceRef:
+        kind: HelmRepository
+        name: istio
+        namespace: istio-system
+  values:
+    service:
+      type: LoadBalancer
+    autoscaleEnabled: true
+    autoscaleMin: 1
+    autoscaleMax: 5
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+---
+# Пример VirtualService и Gateway
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: main-gateway
+  namespace: istio-system
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - "*"
+  - port:
+      number: 443
+      name: https
+      protocol: HTTPS
+    tls:
+      mode: SIMPLE
+      credentialName: my-tls-secret
+    hosts:
+    - "*"
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: example-vs
+  namespace: default
+spec:
+  hosts:
+  - example.com
+  gateways:
+  - istio-system/main-gateway
+  http:
+  - match:
+    - uri:
+        prefix: /api
+    route:
+    - destination:
+        host: api-service
+        port:
+          number: 8080
+  - route:
+    - destination:
+        host: web-service
+        port:
+          number: 80
