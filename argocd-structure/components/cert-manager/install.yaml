@@ -1,5 +1,6 @@
 # Cert-Manager Installation for ArgoCD
-# Source: https://github.com/cert-manager/cert-manager/releases
+# Source: https://charts.jetstack.io
+# Offline mode: images from harbor.local.test:8443
 
 apiVersion: v1
 kind: Namespace
@@ -7,7 +8,6 @@ metadata:
   name: cert-manager
   labels:
     app.kubernetes.io/name: cert-manager
-    app.kubernetes.io/component: controller
 ---
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: HelmRepository
@@ -28,22 +28,31 @@ spec:
   chart:
     spec:
       chart: cert-manager
-      version: "v1.14.3"
+      version: "v1.19.4"
       sourceRef:
         kind: HelmRepository
         name: jetstack
         namespace: cert-manager
   values:
     installCRDs: true
-    replicaCount: 1
-    webhook:
-      replicaCount: 1
+    image:
+      repository: harbor.local.test:8443/library/quay.io/jetstack/cert-manager-controller
+      tag: v1.19.4
     cainjector:
-      replicaCount: 1
+      image:
+        repository: harbor.local.test:8443/library/quay.io/jetstack/cert-manager-cainjector
+        tag: v1.19.4
+    webhook:
+      image:
+        repository: harbor.local.test:8443/library/quay.io/jetstack/cert-manager-webhook
+        tag: v1.19.4
     startupapicheck:
       enabled: true
+      image:
+        repository: harbor.local.test:8443/library/quay.io/jetstack/cert-manager-startupapicheck
+        tag: v1.19.4
 ---
-# Пример ClusterIssuer для Let's Encrypt
+# ClusterIssuer для Let's Encrypt (Production)
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
 metadata:
@@ -59,6 +68,7 @@ spec:
         ingress:
           class: nginx
 ---
+# ClusterIssuer для Let's Encrypt (Staging)
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
 metadata:

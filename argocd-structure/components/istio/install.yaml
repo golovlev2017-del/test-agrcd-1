@@ -1,5 +1,6 @@
 # Istio Installation for ArgoCD
-# Source: https://istio.io/latest/docs/setup/install/
+# Source: https://istio-release.storage.googleapis.com/charts
+# Offline mode: images from harbor.local.test:8443
 
 apiVersion: v1
 kind: Namespace
@@ -17,42 +18,52 @@ spec:
   interval: 1h
   url: https://istio-release.storage.googleapis.com/charts
 ---
-# Istio Base (CRDs)
+# Istio Base (CRDs) - sync-wave: 1
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
   name: istio-base
   namespace: istio-system
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
 spec:
   interval: 1h
   chart:
     spec:
       chart: base
-      version: "1.20.2"
+      version: "1.29.1"
       sourceRef:
         kind: HelmRepository
         name: istio
         namespace: istio-system
   values: {}
 ---
-# Istiod (Control Plane)
+# Istiod (Control Plane) - sync-wave: 2
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
   name: istiod
   namespace: istio-system
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
 spec:
   interval: 1h
   chart:
     spec:
       chart: istiod
-      version: "1.20.2"
+      version: "1.29.1"
       sourceRef:
         kind: HelmRepository
         name: istio
         namespace: istio-system
   values:
+    global:
+      hub: harbor.local.test:8443/istio
+      tag: 1.29.1
+      meshConfig:
+        enableNativeSidecars: false  # Критично для K8s 1.35 + Istio 1.29
     pilot:
+      image: harbor.local.test:8443/istio/pilot
       resources:
         requests:
           cpu: 100m
@@ -63,31 +74,26 @@ spec:
       autoscaleEnabled: true
       autoscaleMin: 1
       autoscaleMax: 5
-    global:
-      proxy:
-        resources:
-          requests:
-            cpu: 100m
-            memory: 128Mi
-          limits:
-            cpu: 500m
-            memory: 512Mi
-      tracer:
-        zipkin:
-          address: zipkin.istio-system.svc.cluster.local:9411
+    cni:
+      enabled: true
+      image: harbor.local.test:8443/istio/install-cni
+      cniBinDir: /opt/cni/bin
+      cniConfDir: /etc/cni/net.d
 ---
-# Istio Ingress Gateway
+# Istio Ingress Gateway - sync-wave: 3
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
   name: istio-ingressgateway
   namespace: istio-system
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
 spec:
   interval: 1h
   chart:
     spec:
       chart: gateway
-      version: "1.20.2"
+      version: "1.29.1"
       sourceRef:
         kind: HelmRepository
         name: istio
