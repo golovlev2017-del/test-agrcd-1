@@ -1,0 +1,40 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: production
+  namespace: argocd
+spec:
+  description: Production environment projects
+  sourceRepos:
+    - 'https://github.com/your-org/your-repo.git'
+    - 'https://github.com/your-org/infrastructure.git'
+  destinations:
+    - namespace: production-*
+      server: https://kubernetes.default.svc
+    - namespace: monitoring
+      server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+    - group: ''
+      kind: Namespace
+    - group: rbac.authorization.k8s.io
+      kind: ClusterRole
+    - group: rbac.authorization.k8s.io
+      kind: ClusterRoleBinding
+  namespaceResourceBlacklist:
+    - group: ''
+      kind: ResourceQuota
+    - group: ''
+      kind: LimitRange
+  roles:
+    - name: read-only
+      description: Read-only access to production applications
+      policies:
+        - p, proj:production:read-only, applications, get, production/*, allow
+      groups:
+        - production-readonly
+    - name: admin
+      description: Admin access to production applications
+      policies:
+        - p, proj:production:admin, applications, *, production/*, allow
+      groups:
+        - production-admins
