@@ -1,6 +1,9 @@
 # Cert-Manager Installation for ArgoCD
-# Source: https://charts.jetstack.io
-# Offline mode: images from harbor.local.test:8443
+# OFFLINE MODE: Все чарты должны быть предварительно загружены в локальный репозиторий
+# Инструкция по подготовке:
+#   1. helm pull jetstack/cert-manager --version v1.19.4
+#   2. Загрузить chart в локальный репозиторий (Harbor/Nexus/ChartMuseum)
+#   3. Все образы должны быть в harbor.local.test:8443
 
 apiVersion: v1
 kind: Namespace
@@ -12,11 +15,13 @@ metadata:
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: HelmRepository
 metadata:
-  name: jetstack
+  name: jetstack-local
   namespace: cert-manager
 spec:
   interval: 1h
-  url: https://charts.jetstack.io
+  # OFFLINE: Укажите URL вашего локального репозитория чартов
+  url: http://harbor.local.test:8443/chartrepo/library
+  type: default
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -31,7 +36,7 @@ spec:
       version: "v1.19.4"
       sourceRef:
         kind: HelmRepository
-        name: jetstack
+        name: jetstack-local
         namespace: cert-manager
   values:
     installCRDs: true

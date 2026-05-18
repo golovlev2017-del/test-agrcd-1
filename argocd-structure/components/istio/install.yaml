@@ -1,6 +1,11 @@
 # Istio Installation for ArgoCD
-# Source: https://istio-release.storage.googleapis.com/charts
-# Offline mode: images from harbor.local.test:8443
+# OFFLINE MODE: Все чарты должны быть предварительно загружены в локальный репозиторий
+# Инструкция по подготовке:
+#   1. helm pull istio/base --version 1.29.1
+#   2. helm pull istio/istiod --version 1.29.1
+#   3. helm pull istio/gateway --version 1.29.1
+#   4. Загрузить все charts в локальный репозиторий (Harbor/Nexus/ChartMuseum)
+#   5. Все образы должны быть в harbor.local.test:8443
 
 apiVersion: v1
 kind: Namespace
@@ -12,11 +17,13 @@ metadata:
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: HelmRepository
 metadata:
-  name: istio
+  name: istio-local
   namespace: istio-system
 spec:
   interval: 1h
-  url: https://istio-release.storage.googleapis.com/charts
+  # OFFLINE: Укажите URL вашего локального репозитория чартов
+  url: http://harbor.local.test:8443/chartrepo/library
+  type: default
 ---
 # Istio Base (CRDs) - sync-wave: 1
 apiVersion: helm.toolkit.fluxcd.io/v2
@@ -34,7 +41,7 @@ spec:
       version: "1.29.1"
       sourceRef:
         kind: HelmRepository
-        name: istio
+        name: istio-local
         namespace: istio-system
   values: {}
 ---
@@ -54,7 +61,7 @@ spec:
       version: "1.29.1"
       sourceRef:
         kind: HelmRepository
-        name: istio
+        name: istio-local
         namespace: istio-system
   values:
     global:
@@ -96,7 +103,7 @@ spec:
       version: "1.29.1"
       sourceRef:
         kind: HelmRepository
-        name: istio
+        name: istio-local
         namespace: istio-system
   values:
     service:

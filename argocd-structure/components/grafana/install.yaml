@@ -1,6 +1,10 @@
 # Grafana Installation for ArgoCD
-# Source: https://grafana.github.io/helm-charts
-# Offline mode: images from harbor.local.test:8443
+# OFFLINE MODE: Все чарты должны быть предварительно загружены в локальный репозиторий
+# Инструкция по подготовке:
+#   1. helm pull grafana/grafana --version 7.3.6
+#   2. Загрузить chart в локальный репозиторий (Harbor/Nexus/ChartMuseum)
+#   3. Все образы должны быть в harbor.local.test:8443
+#   4. Плагины должны быть предварительно скачаны и установлены offline
 
 apiVersion: v1
 kind: Namespace
@@ -12,11 +16,13 @@ metadata:
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: HelmRepository
 metadata:
-  name: grafana
+  name: grafana-local
   namespace: monitoring
 spec:
   interval: 1h
-  url: https://grafana.github.io/helm-charts
+  # OFFLINE: Укажите URL вашего локального репозитория чартов
+  url: http://harbor.local.test:8443/chartrepo/library
+  type: default
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -31,7 +37,7 @@ spec:
       version: "7.3.6"
       sourceRef:
         kind: HelmRepository
-        name: grafana
+        name: grafana-local
         namespace: monitoring
   values:
     replicas: 1
@@ -124,6 +130,7 @@ spec:
         enabled: true
         searchNamespace: ALL
     
-    plugins:
-      - grafana-clock-panel
-      - grafana-piechart-panel
+    # OFFLINE: Плагины должны быть предварительно загружены в образ или volume
+    # plugins:
+    #   - grafana-clock-panel
+    #   - grafana-piechart-panel
