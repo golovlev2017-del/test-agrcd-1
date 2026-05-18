@@ -1,59 +1,48 @@
 ```
-# ArgoCD specific ignores
-argocd-structure/secrets/**
-!argocd-structure/secrets/README.md
-
-# Kubernetes manifests backup/config
-*.bak
-*.backup
-*.orig
-
-# General ignores for ArgoCD projects
-*.log
-*.tmp
-*.swp
-*~
-.DS_Store
-Thumbs.db
-
-# Environment files
-.env
-.env.local
-.env.*
-
-# IDE files
-.vscode/
-.idea/
-*.iml
-*.ipr
-*.iws
-
-# Build outputs (if any)
+# Compiled and build artifacts
+*.pyc
+__pycache__/
+*.o
+*.obj
 dist/
 build/
 target/
-_coverage/
 
-# Python (if used in automation)
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
-*.so
-.coverage
-htmlcov/
-.pytest_cache/
-.mypy_cache/
-
-# Node (if used in UI components)
+# Dependencies
+.venv/
+venv/
 node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+.julia/
+zig-cache/
 
-# Temporary files
-*.tmp
-*.temp
+# Logs and temp files
 *.log
+*.tmp
+*.swp
+*.swo
+
+# Environment
+.env
+.env.local
+*.env.*
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Coverage
+coverage/
+htmlcov/
+.coverage
+
+# Cache directories
+.mypy_cache/
+.pytest_cache/
+.gradle/
 ```
