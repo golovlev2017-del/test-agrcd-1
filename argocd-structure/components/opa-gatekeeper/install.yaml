@@ -1,5 +1,6 @@
 # OPA Gatekeeper Installation for ArgoCD
-# Source: https://open-policy-agent.github.io/gatekeeper/website/docs/install/
+# Source: https://open-policy-agent.github.io/gatekeeper/charts
+# Offline mode: images from harbor.local.test:8443
 
 apiVersion: v1
 kind: Namespace
@@ -7,7 +8,6 @@ metadata:
   name: gatekeeper-system
   labels:
     app.kubernetes.io/name: gatekeeper
-    app.kubernetes.io/component: controller
 ---
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: HelmRepository
@@ -28,13 +28,22 @@ spec:
   chart:
     spec:
       chart: gatekeeper
-      version: "3.15.0"
+      version: "3.22.0"
       sourceRef:
         kind: HelmRepository
         name: gatekeeper
         namespace: gatekeeper-system
   values:
     # Controller настройки
+    image:
+      repository: harbor.local.test:8443/library/openpolicyagent/gatekeeper
+      tag: v3.22.0
+    
+    crds:
+      image:
+        repository: harbor.local.test:8443/library/openpolicyagent/gatekeeper-crds
+        tag: v3.22.0
+    
     controllerManager:
       replicas: 2
       resources:
@@ -44,7 +53,7 @@ spec:
         limits:
           cpu: 500m
           memory: 512Mi
-      
+
       # Аудит включен
       audit:
         enabled: true
@@ -56,7 +65,7 @@ spec:
           limits:
             cpu: 200m
             memory: 256Mi
-    
+
     # Webhook настройки
     webhook:
       replicas: 2
@@ -67,18 +76,26 @@ spec:
         limits:
           cpu: 300m
           memory: 256Mi
-    
+
     # Prometheus мониторинг
     prometheus:
       enabled: true
       serviceMonitor:
         enabled: true
-    
+
     # Excluded namespaces (не применять политики к этим namespace)
     exemptNamespaces:
       - kube-system
       - gatekeeper-system
       - cert-manager
+
+    # Обход ошибки с недоступным curl
+    postInstall:
+      labelNamespace:
+        enabled: false
+    postUpgrade:
+      labelNamespace:
+        enabled: false
 ---
 # Пример ConstraintTemplate для проверки label
 apiVersion: templates.gatekeeper.sh/v1
@@ -103,7 +120,7 @@ spec:
     - target: admission.k8s.gatekeeper.sh
       rego: |
         package k8srequiredlabels
-        
+
         violation[{"msg": msg, "details": {"missingLabels": missing}}] {
           provided := {label | input.review.object.metadata.labels[label]}
           required := {label | label := input.parameters.labels[_]}
@@ -150,13 +167,13 @@ spec:
     - target: admission.k8s.gatekeeper.sh
       rego: |
         package k8sresourcelimits
-        
+
         violation[{"msg": msg}] {
           container := input.review.object.spec.containers[_]
           not container.resources.limits.cpu
           msg := sprintf("Container <%v> must have CPU limit", [container.name])
         }
-        
+
         violation[{"msg": msg}] {
           container := input.review.object.spec.containers[_]
           not container.resources.limits.memory
