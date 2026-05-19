@@ -1,24 +1,26 @@
+# Root Application (App of Apps pattern)
+# Это корневое приложение, которое управляет всеми остальными приложениями
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: my-app
+  name: root-app
   namespace: argocd
-  labels:
-    app.kubernetes.io/name: my-app
-    app.kubernetes.io/part-of: workloads
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
 spec:
-  project: production
+  project: default
   
-  # Источник - локальный Git-репозиторий (offline)
+  # Источники для всех приложений
   source:
     repoURL: https://git.local.test/infrastructure/manifests.git
-    targetRevision: main
-    path: applications/workloads/my-app
-  
+    targetRevision: HEAD
+    path: applications
+    
   destination:
     server: https://kubernetes.default.svc
-    namespace: my-app
+    namespace: argocd
   
+  # SyncPolicy для корневого приложения
   syncPolicy:
     automated:
       prune: true
@@ -29,7 +31,6 @@ spec:
       - PrunePropagationPolicy=foreground
       - PruneLast=true
       - RespectIgnoreDifferences=true
-      - ApplyOutOfSyncOnly=true
     retry:
       limit: 5
       backoff:
@@ -37,7 +38,7 @@ spec:
         factor: 2
         maxDuration: 3m
   
-  # Игнорирование различий для полей, управляемых другими системами
+  # Отслеживание ресурсов
   ignoreDifferences:
     - group: apps
       kind: Deployment
@@ -47,10 +48,3 @@ spec:
       kind: HorizontalPodAutoscaler
       jsonPointers:
         - /status/currentReplicas
-  
-  # Информация о приложении
-  info:
-    - name: Owner
-      value: platform-team
-    - name: Slack
-      value: '#my-app-alerts'

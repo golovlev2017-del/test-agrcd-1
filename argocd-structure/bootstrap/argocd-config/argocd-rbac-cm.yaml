@@ -1,0 +1,46 @@
+# ArgoCD RBAC ConfigMap - настройки доступа
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-rbac-cm
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd-rbac-cm
+    app.kubernetes.io/part-of: argocd
+data:
+  # Политики RBAC (в формате Casbin)
+  policy.csv: |
+    # Роль администратора ArgoCD
+    p, role:argocd-admin, applications, *, */*, allow
+    p, role:argocd-admin, clusters, *, *, allow
+    p, role:argocd-admin, repositories, *, *, allow
+    p, role:argocd-admin, projects, *, *, allow
+    p, role:argocd-admin, logs, *, *, allow
+    p, role:argocd-admin, exec, create, */*, allow
+
+    # Роль разработчика - только чтение
+    p, role:argocd-readonly, applications, get, */*, allow
+    p, role:argocd-readonly, applications, sync, */*, allow
+    p, role:argocd-readonly, projects, get, */*, allow
+    p, role:argocd-readonly, logs, get, */*, allow
+
+    # Роль для production - ограниченный доступ
+    p, role:production-admin, applications, *, production/*, allow
+    p, role:production-admin, applications, get, */*, allow
+    p, role:production-admin, logs, get, production/*, allow
+
+    # Привязка групп к ролям
+    g, argocd-admins, role:argocd-admin
+    g, developers, role:argocd-readonly
+    g, production-team, role:production-admin
+
+  # Политика по умолчанию (если роль не определена)
+  policy.default: role:argocd-readonly
+
+  # Скоуп OIDC (если используется SSO)
+  scopes: "[groups]"
+
+  # Мэтчер для OIDC
+  oidc.config: |
+    # Для offline-окружения можно использовать Dex
+    # или отключить OIDC и использовать локальные пользователи
