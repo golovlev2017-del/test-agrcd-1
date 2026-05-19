@@ -1,0 +1,47 @@
+# ArgoCD Repositories - определение репозиториев
+# Все репозитории должны быть доступны в offline-окружении
+apiVersion: v1
+kind: Secret
+metadata:
+  name: argocd-repos
+  namespace: argocd
+  labels:
+    argocd.argoproj.io/secret-type: repository
+type: Opaque
+stringData:
+  # Локальный Git-репозиторий (Gitea/GitLab)
+  git-local: |\n    url: https://git.local.test/infrastructure/manifests.git\n    name: git-local\n    type: git\n    insecure: false\n    username: argocd\n    password: <password>\n  
+  # Локальный Helm-репозиторий (Harbor/Nexus)
+  helm-local: |\n    url: http://harbor.local.test:8443/chartrepo/library\n    name: helm-local\n    type: helm\n    insecure: true
+  
+  # OCI Registry для Helm charts
+  oci-harbor: |\n    url: oci://harbor.local.test:8443/helm-charts\n    name: oci-harbor\n    type: helm\n    insecure: true
+---
+# Альтернативный способ через Repository CRD (ArgoCD 2.5+)
+apiVersion: argoproj.io/v1alpha1
+kind: Repository
+metadata:
+  name: git-local
+  namespace: argocd
+spec:
+  repo: https://git.local.test/infrastructure/manifests.git
+  name: git-local
+  type: git
+  insecure: false
+  usernameSecret:
+    name: git-local-credentials
+    key: username
+  passwordSecret:
+    name: git-local-credentials
+    key: password
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Repository
+metadata:
+  name: helm-local
+  namespace: argocd
+spec:
+  repo: http://harbor.local.test:8443/chartrepo/library
+  name: helm-local
+  type: helm
+  insecure: true

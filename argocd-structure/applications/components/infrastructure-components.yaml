@@ -1,0 +1,73 @@
+# Application для установки всех инфраструктурных компонентов
+# Использует App of Apps паттерн
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: infrastructure-components
+  namespace: argocd
+spec:
+  generators:
+    - list:
+        elements:
+          - component: cert-manager
+            path: components/cert-manager
+            namespace: cert-manager
+            repoURL: https://git.local.test/infrastructure/manifests.git
+            targetRevision: main
+          - component: metallb
+            path: components/metallb
+            namespace: metallb-system
+            repoURL: https://git.local.test/infrastructure/manifests.git
+            targetRevision: main
+          - component: istio
+            path: components/istio
+            namespace: istio-system
+            repoURL: https://git.local.test/infrastructure/manifests.git
+            targetRevision: main
+          - component: grafana
+            path: components/grafana
+            namespace: monitoring
+            repoURL: https://git.local.test/infrastructure/manifests.git
+            targetRevision: main
+          - component: victorialogs
+            path: components/victorialogs
+            namespace: logging
+            repoURL: https://git.local.test/infrastructure/manifests.git
+            targetRevision: main
+          - component: opa-gatekeeper
+            path: components/opa-gatekeeper
+            namespace: gatekeeper-system
+            repoURL: https://git.local.test/infrastructure/manifests.git
+            targetRevision: main
+  
+  template:
+    metadata:
+      name: '{{component}}'
+      namespace: argocd
+      labels:
+        app.kubernetes.io/name: '{{component}}'
+        app.kubernetes.io/part-of: infrastructure
+    spec:
+      project: default
+      source:
+        repoURL: '{{repoURL}}'
+        targetRevision: '{{targetRevision}}'
+        path: '{{path}}'
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: '{{namespace}}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - PrunePropagationPolicy=foreground
+          - PruneLast=true
+          - RespectIgnoreDifferences=true
+        retry:
+          limit: 5
+          backoff:
+            duration: 5s
+            factor: 2
+            maxDuration: 3m

@@ -1,0 +1,36 @@
+# ArgoCD ConfigMap - основная конфигурация
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-cm
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd-cm
+    app.kubernetes.io/part-of: argocd
+data:
+  # URL ArgoCD (для offline - внутренний)
+  url: https://argocd.local.test
+  
+  # Отключение telemetry (не нужно без интернета)
+  application.resourceTrackingMethod: annotation
+  
+  # Timeout для операций
+  timeout.reconciliation: 180s
+  timeout.hard.reconciliation: 0s
+  
+  # Настройки для Helm (локальный репозиторий)
+  helm.repositories: |\n    - name: harbor-local\n      url: http://harbor.local.test:8443/chartrepo/library\n    - name: bitnami-local\n      url: http://harbor.local.test:8443/chartrepo/bitnami\n  
+  # Kustomize настройки
+  kustomize.buildOptions: --load-restrictor LoadRestrictionsNone
+  
+  # Git настройки (для локального git-сервера)
+  git.submodule.enabled: "true"
+  
+  # Отключение проверок TLS для внутренних репозиториев
+  # В production используйте правильные сертификаты!
+  tls.insecure.skip.verify: "false"
+  
+  # Логирование
+  controller.log.level: info
+  repoServer.log.level: info
+  applicationSetController.log.level: info
