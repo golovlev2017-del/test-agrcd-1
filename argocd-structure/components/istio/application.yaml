@@ -1,0 +1,125 @@
+# Istio Service Mesh Installation for ArgoCD
+# OFFLINE MODE: Все чарты и образы должны быть в harbor.local.test:8443
+# 
+# Параметры из kuber.txt:
+# - Version: 1.29.1
+# - КРИТИЧНО: enableNativeSidecars=false (для K8s 1.35)
+# - Компоненты: istio-base, istiod, istio-cni
+# - mTLS: STRICT
+# - AuthorizationPolicy: deny-all
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: istio-base
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+spec:
+  project: default
+  source:
+    repoURL: https://git.local.test/k8s/charts.git
+    targetRevision: 1.29.1
+    path: charts/istio/base
+    helm:
+      releaseName: istio-base
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: istio-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: istiod
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "11"
+spec:
+  project: default
+  source:
+    repoURL: https://git.local.test/k8s/charts.git
+    targetRevision: 1.29.1
+    path: charts/istio/istiod
+    helm:
+      releaseName: istiod
+      values: |
+        image:
+          repository: harbor.local.test:8443/istio/pilot
+          tag: 1.29.1
+        global:
+          hub: harbor.local.test:8443/istio
+          tag: 1.29.1
+        meshConfig:
+          enableNativeSidecars: false  # КРИТИЧНО для K8s 1.35 + Istio 1.29
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: istio-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: istio-cni
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "12"
+spec:
+  project: default
+  source:
+    repoURL: https://git.local.test/k8s/charts.git
+    targetRevision: 1.29.1
+    path: charts/istio/cni
+    helm:
+      releaseName: istio-cni
+      values: |
+        image:
+          repository: harbor.local.test:8443/istio/install-cni
+          tag: 1.29.1
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: istio-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+# PeerAuthentication: mTLS STRICT
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: istio-system
+  annotations:
+    argocd.argoproj.io/sync-wave: "13"
+spec:
+  mtls:
+    mode: STRICT
+---
+# AuthorizationPolicy: deny-all
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: deny-all
+  namespace: istio-system
+  annotations:
+    argocd.argoproj.io/sync-wave: "14"
+spec: {}

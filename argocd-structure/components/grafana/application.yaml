@@ -1,0 +1,31 @@
+# Grafana Installation for ArgoCD
+# OFFLINE MODE: Все образы должны быть в harbor.local.test:8443
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: grafana
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "22"
+spec:
+  project: default
+  source:
+    repoURL: https://git.local.test/k8s/charts.git
+    targetRevision: main
+    path: charts/grafana
+    helm:
+      releaseName: grafana
+      values: |
+        image:
+          repository: harbor.local.test:8443/library/grafana/grafana
+          tag: latest
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

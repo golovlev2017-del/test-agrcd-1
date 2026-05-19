@@ -1,0 +1,31 @@
+# VictoriaLogs Installation for ArgoCD
+# OFFLINE MODE: Все образы должны быть в harbor.local.test:8443
+# 
+# Параметры из kuber.txt:
+# - Version: v1.49.0
+# - Образы:
+#   - victorialogs: harbor.local.test:8443/library/victoriametrics/victoria-logs:v1.49.0
+#   - vlagent: harbor.local.test:8443/library/victoriametrics/vlagent:v1.49.0
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: victorialogs
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "23"
+spec:
+  project: default
+  source:
+    repoURL: https://git.local.test/k8s/manifests.git
+    targetRevision: main
+    path: manifests/victorialogs
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
