@@ -1,40 +1,48 @@
 ```
-# Compiled and build artifacts
+# Compiled and binary files
 *.pyc
-__pycache__/
+*.class
 *.o
 *.obj
-dist/
-build/
-target/
+*.out
+*.exe
+*.dll
+*.so
+*.a
 
 # Dependencies
 node_modules/
 venv/
 .venv/
-.env
-.env.local
-.env.*
+__pycache__/
+.mypy_cache/
+.pytest_cache/
+target/
+.gradle/
+dist/
+build/
 
-# Logs and temp files
-*.log
-*.tmp
-*.swp
-
-# Editors
+# Editors and IDEs
 .vscode/
 .idea/
+*.swp
+*.swo
+*.tmp
 
-# Coverage reports
+# System and environment
+.DS_Store
+Thumbs.db
+.env
+.env.local
+*.env.*
+*.log
+
+# Coverage
 coverage/
 htmlcov/
 .coverage
 
-# OS generated files
-.DS_Store
-Thumbs.db
-
-# Archives
+# Compressed files
 *.zip
 *.gz
 *.tar
@@ -57,118 +65,4 @@ Thumbs.db
 *.tar.bz2
 *.tar.xz
 *.tar.zst
-
-# Python specific
-*.pyo
-*.pyd
-*.so
-*.egg-info/
-.Python
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Java specific
-*.class
-*.jar
-*.war
-*.ear
-hs_err_pid*
-
-# Node specific
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Go specific
-*.exe
-*.test
-*.prof
-
-# C/C++ specific
-*.a
-*.lib
-*.dll
-*.so
-*.dylib
-*.dSYM/
-*.pdb
-
-# Ruby specific
-*.gem
-*.rbc
-capybara-*.html
-.rspec
-Guardfile
-.bundle
-.rbx
-*.reek
-*.gemspec
-
-# .NET specific
-*.suo
-*.user
-*.userosscache
-*.sln.docstates
-packages/
-[Nn]uget
-[Cc]ache/
-*.Cache
-artifacts/
-
-# Android specific
-*.apk
-*.ap_
-local.properties
-.settings/
-.loadpath
-.recommenders
-
-# Coverage directory used by tools like istanbul
-coverage/
-
-# Grunt intermediate storage (https://gruntjs.com/creating-plugins#storing-task-files)
-.grunt
-
-# Bower dependency directory (https://bower.io/)
-bower_components/
-
-# node-waf configuration
-.lock-wscript
-
-# Compiled binary files
-*.exe
-*.com
-*.dll
-*.app
-*.bin
-*.o
-*.a
-*.obj
-*.lib
-*.so
-*.dylib
-*.pyc
-*.pyo
-*.nib
-*.class
-
-# Various IDEs
-*.swp
-*.swo
-*~
-.project
-.watcherdb
-.cache
-.metadata
-.tern-project
-.tern-port
-.dir-locals.el
-```
-
-Wait, let me reconsider this. Looking at the actual file changes provided, they are all YAML and Markdown files in an argocd-structure directory. These appear to be configuration files, not build artifacts or dependencies. Let me check again:
-
-The changes are only to YAML value files and a component application file - all are source/configuration files that should be tracked in git.
-
-```
-
 ```

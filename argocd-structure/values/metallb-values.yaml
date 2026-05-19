@@ -1,5 +1,7 @@
 # MetalLB Values
 # Наследует глобальные настройки из global-values.yaml
+# Режим: L2 только (BGP отключен)
+# 2 пула адресов: ingress и egress
 
 global:
   imagePullPolicy: IfNotPresent
@@ -15,24 +17,43 @@ speaker:
     repository: harbor.local.test:8443/library/quay.io/metallb/speaker
     tag: v0.15.2
 
-# Режим работы: layer2 или bgp
+# Режим работы: layer2 (BGP отключен)
 mode: layer2
+
+# BGP отключен
+bgp:
+  enabled: false
 
 # L2 настройки
 l2Advertisement:
   enabled: true
   
-# Пул адресов (из kuber.txt)
+# Пул адресов - 2 пула: ingress и egress (из kuber.txt)
 ipAddressPools:
-  - name: default-pool
+  # Пул для ingress трафика (входящие соединения)
+  - name: ingress-pool
     addresses:
-      - 192.168.100.100-192.168.100.200
+      - 192.168.100.100-192.168.100.150
     autoAssign: true
+    avoidBuggyIPs: true
     
-# L2 Advertisement
+  # Пул для egress трафика (исходящие соединения)
+  - name: egress-pool
+    addresses:
+      - 192.168.100.151-192.168.100.200
+    autoAssign: true
+    avoidBuggyIPs: true
+    
+# L2 Advertisement для обоих пулов
 l2Advertisements:
-  - name: default-l2
-    ipAddressPool: default-pool
+  # Реклама для ingress пула
+  - name: ingress-l2
+    ipAddressPool: ingress-pool
+    nodeSelectors: []
+    
+  # Реклама для egress пула
+  - name: egress-l2
+    ipAddressPool: egress-pool
     nodeSelectors: []
 
 # Ресурсы контроллера

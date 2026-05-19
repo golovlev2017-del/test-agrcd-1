@@ -1,6 +1,7 @@
 # Calico CNI Values
 # Наследует глобальные настройки из global-values.yaml
 # Переопределяет специфичные параметры для Calico
+# Режим: iptables (без BGP, без IP-in-IP инкапсуляции)
 
 # Глобальные настройки (автоматически подгружаются ArgoCD)
 global:
@@ -11,17 +12,21 @@ installCRDs: true
 
 calicoVersion: v3.30.7
 
-# Сетевые настройки
+# Сетевые настройки - режим iptables
 ipipMode: Never
-vxlanMode: CrossSubnet
-natOutgoing: Disabled
+vxlanMode: Never
+natOutgoing: Enabled
 
 # Детектирование интерфейса
 ipAutodetectionMethod: interface=enp1s0
 
 # MTU
 felix:
-  vxlanMTU: 1450
+  mtu: 1450
+  # Принудительное использование iptables
+  bpfEnabled: false
+  serviceLoopPrevention: "IPTABLES"
+  wireguardEnabled: false
 
 # Образы (используют локальный registry)
 image: harbor.local.test:8443/library/docker.io/calico/node
@@ -55,3 +60,7 @@ tolerations:
   - key: node-role.kubernetes.io/master
     operator: Exists
     effect: NoSchedule
+
+# Отключение BGP
+bgp:
+  enabled: false

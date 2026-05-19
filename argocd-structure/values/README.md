@@ -177,22 +177,55 @@ resources:
     memory: 2Gi    # Было 1Gi
 ```
 
-### Пример 3: Включение BGP режима для MetalLB
+### Пример 3: Изменение режима Calico на iptables
+
+```yaml
+# values/calico-values.yaml
+# Режим iptables (без BGP и инкапсуляции)
+ipipMode: Never
+vxlanMode: Never
+natOutgoing: Enabled
+
+felix:
+  bpfEnabled: false
+  serviceLoopPrevention: "IPTABLES"
+  wireguardEnabled: false
+
+bgp:
+  enabled: false
+```
+
+### Пример 4: Настройка MetalLB с двумя пулами адресов (L2 режим, без BGP)
 
 ```yaml
 # values/metallb-values.yaml
-mode: bgp  # Было layer2
+mode: layer2
 
-bgpAdvertisement:
-  enabled: true
-  
-bgpPeers:
-  - myASN: 64512
-    peerASN: 64513
-    peerAddress: 192.168.100.1
+bgp:
+  enabled: false  # BGP отключен
+
+ipAddressPools:
+  # Пул для ingress трафика (входящие соединения)
+  - name: ingress-pool
+    addresses:
+      - 192.168.100.100-192.168.100.150
+    autoAssign: true
+    
+  # Пул для egress трафика (исходящие соединения)
+  - name: egress-pool
+    addresses:
+      - 192.168.100.151-192.168.100.200
+    autoAssign: true
+
+l2Advertisements:
+  - name: ingress-l2
+    ipAddressPool: ingress-pool
+    
+  - name: egress-l2
+    ipAddressPool: egress-pool
 ```
 
-### Пример 4: Добавление tolerations для работы на master нодах
+### Пример 5: Добавление tolerations для работы на master нодах
 
 ```yaml
 # values/node-exporter-values.yaml
