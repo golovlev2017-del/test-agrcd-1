@@ -1,0 +1,78 @@
+# MetalLB Values
+# Наследует глобальные настройки из global-values.yaml
+
+global:
+  imagePullPolicy: IfNotPresent
+
+# Образы
+controller:
+  image:
+    repository: harbor.local.test:8443/library/quay.io/metallb/controller
+    tag: v0.15.2
+    
+speaker:
+  image:
+    repository: harbor.local.test:8443/library/quay.io/metallb/speaker
+    tag: v0.15.2
+
+# Режим работы: layer2 или bgp
+mode: layer2
+
+# L2 настройки
+l2Advertisement:
+  enabled: true
+  
+# Пул адресов (из kuber.txt)
+ipAddressPools:
+  - name: default-pool
+    addresses:
+      - 192.168.100.100-192.168.100.200
+    autoAssign: true
+    
+# L2 Advertisement
+l2Advertisements:
+  - name: default-l2
+    ipAddressPool: default-pool
+    nodeSelectors: []
+
+# Ресурсы контроллера
+controller:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+      
+# Ресурсы speaker
+speaker:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+# Node Selector
+nodeSelector:
+  kubernetes.io/os: linux
+
+# Tolerations для работы на всех нодах
+tolerations:
+  - key: node-role.kubernetes.io/control-plane
+    operator: Exists
+    effect: NoSchedule
+  - key: node-role.kubernetes.io/master
+    operator: Exists
+    effect: NoSchedule
+
+# Prometheus мониторинг
+prometheus:
+  enabled: true
+  serviceMonitor:
+    enabled: false
+    
+# Логирование
+logLevel: info

@@ -1,0 +1,57 @@
+# Calico CNI Values
+# Наследует глобальные настройки из global-values.yaml
+# Переопределяет специфичные параметры для Calico
+
+# Глобальные настройки (автоматически подгружаются ArgoCD)
+global:
+  imagePullPolicy: IfNotPresent
+
+# Настройки Calico
+installCRDs: true
+
+calicoVersion: v3.30.7
+
+# Сетевые настройки
+ipipMode: Never
+vxlanMode: CrossSubnet
+natOutgoing: Disabled
+
+# Детектирование интерфейса
+ipAutodetectionMethod: interface=enp1s0
+
+# MTU
+felix:
+  vxlanMTU: 1450
+
+# Образы (используют локальный registry)
+image: harbor.local.test:8443/library/docker.io/calico/node
+kubeControllersImage: harbor.local.test:8443/library/docker.io/calico/kube-controllers
+cniImage: harbor.local.test:8443/library/docker.io/calico/cni
+typhaImage: harbor.local.test:8443/library/docker.io/calico/typha
+
+tag: v3.30.7
+
+# Ресурсы
+resources:
+  requests:
+    cpu: 250m
+    memory: 64Mi
+  limits:
+    cpu: 1000m
+    memory: 512Mi
+
+# Включить Typha для масштабируемости
+typhaEnabled: false
+
+# Node Selector
+nodeSelector:
+  kubernetes.io/os: linux
+
+# Tolerations для работы на всех нодах включая master
+tolerations:
+  - key: node-role.kubernetes.io/control-plane
+    operator: Exists
+    effect: NoSchedule
+  - key: node-role.kubernetes.io/master
+    operator: Exists
+    effect: NoSchedule

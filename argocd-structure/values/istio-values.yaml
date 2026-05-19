@@ -1,0 +1,107 @@
+# Istio Values
+# Наследует глобальные настройки из global-values.yaml
+# Устанавливает Istio Service Mesh (base + istiod + cni + ingress)
+
+global:
+  imagePullPolicy: IfNotPresent
+  
+  # Локальный registry для всех образов Istio
+  hub: harbor.local.test:8443/library/docker.io/istio
+  tag: "1.26.0"
+  
+  # Настройки mesh
+  proxy:
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 256Mi
+    image: proxyv2
+    
+  # Сеть
+  meshConfig:
+    accessLogFile: /dev/stdout
+    enableTracing: false
+    defaultConfig:
+      tracing: {}
+
+# Base компонент (устанавливается первым)
+base:
+  enabled: true
+  
+# Istiod (control plane)
+pilot:
+  enabled: true
+  autoscaleEnabled: false
+  replicas: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+  traceSampling: 1.0
+  
+# CNI компонент
+cni:
+  enabled: true
+  cniBinDir: /opt/cni/bin
+  cniConfDir: /etc/cni/net.d
+  chained: true
+  
+# Ingress Gateway
+gateway:
+  enabled: true
+  name: istio-ingressgateway
+  service:
+    type: LoadBalancer  # Использует MetalLB
+    ports:
+      - name: status-port
+        port: 15021
+      - name: http2
+        port: 80
+      - name: https
+        port: 443
+  autoscaleEnabled: false
+  replicas: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+# Egress Gateway (отключен по умолчанию)
+egressGateway:
+  enabled: false
+
+# Node Selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity: {}
+
+# Prometheus интеграция
+telemetry:
+  enabled: true
+  v2:
+    enabled: true
+        
+# Kiali (визуализация, опционально)
+kiali:
+  enabled: false
+  
+# Jaeger (трассировка, опционально)
+jaeger:
+  enabled: false
+
+# Zipkin (трассировка, опционально)  
+zipkin:
+  enabled: false

@@ -1,6 +1,10 @@
 # ApplicationSet для установки всех инфраструктурных компонентов
 # Использует паттерн App of Apps с sync-wave для управления порядком установки
 # Все компоненты соответствуют параметрам из kuber.txt
+# 
+# ВАЖНО: Все значения вынесены в Helm values files в директории /values/
+# Для изменения параметров редактируйте values/global-values.yaml или создавайте
+# компонент-специфичные values файлы
 
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
@@ -13,90 +17,112 @@ spec:
         elements:
           # Calico CNI (устанавливается первым, prune=false)
           - component: calico
-            path: components/calico
+            chart: calico
+            chartVersion: "v3.30.7"
+            valuesFile: "values/calico-values.yaml"
             namespace: kube-system
-            repoURL: https://git.local.test/k8s/argocd-structure.git
-            targetRevision: HEAD
+            repoURL: https://git.local.test/k8s/charts.git
+            targetRevision: v3.30.7
             syncWave: "-10"
             prune: "false"
           # cert-manager + Vault Issuer
           - component: cert-manager
-            path: components/cert-manager
+            chart: cert-manager
+            chartVersion: "v1.19.4"
+            valuesFile: "values/cert-manager-values.yaml"
             namespace: cert-manager
-            repoURL: https://git.local.test/k8s/argocd-structure.git
-            targetRevision: HEAD
+            repoURL: https://git.local.test/k8s/charts.git
+            targetRevision: v1.19.4
             syncWave: "0"
             prune: "true"
           # Istio Service Mesh (base → istiod → cni → policies)
           - component: istio
-            path: components/istio
+            chart: istio-base
+            chartVersion: "1.26.0"
+            valuesFile: "values/istio-values.yaml"
             namespace: istio-system
-            repoURL: https://git.local.test/k8s/argocd-structure.git
-            targetRevision: HEAD
+            repoURL: https://git.local.test/k8s/charts.git
+            targetRevision: 1.26.0
             syncWave: "10"
             prune: "true"
           # VictoriaMetrics (метрики)
           - component: victoriametrics
-            path: components/victoriametrics
+            chart: victoria-metrics-single
+            chartVersion: "0.35.0"
+            valuesFile: "values/victoriametrics-values.yaml"
             namespace: monitoring
-            repoURL: https://git.local.test/k8s/argocd-structure.git
-            targetRevision: HEAD
+            repoURL: https://git.local.test/k8s/charts.git
+            targetRevision: 0.35.0
             syncWave: "20"
             prune: "true"
           # vmagent (сбор метрик)
           - component: vmagent
-            path: components/vmagent
+            chart: vmagent
+            chartVersion: "0.35.0"
+            valuesFile: "values/vmagent-values.yaml"
             namespace: monitoring
-            repoURL: https://git.local.test/k8s/argocd-structure.git
-            targetRevision: HEAD
+            repoURL: https://git.local.test/k8s/charts.git
+            targetRevision: 0.35.0
             syncWave: "21"
             prune: "true"
           # Grafana (визуализация)
           - component: grafana
-            path: components/grafana
+            chart: grafana
+            chartVersion: "8.12.0"
+            valuesFile: "values/grafana-values.yaml"
             namespace: monitoring
-            repoURL: https://git.local.test/k8s/argocd-structure.git
-            targetRevision: HEAD
+            repoURL: https://git.local.test/k8s/charts.git
+            targetRevision: 8.12.0
             syncWave: "22"
             prune: "true"
           # VictoriaLogs (логи)
           - component: victorialogs
-            path: components/victorialogs
+            chart: victoria-logs-single
+            chartVersion: "0.9.0"
+            valuesFile: "values/victorialogs-values.yaml"
             namespace: monitoring
-            repoURL: https://git.local.test/k8s/argocd-structure.git
-            targetRevision: HEAD
+            repoURL: https://git.local.test/k8s/charts.git
+            targetRevision: 0.9.0
             syncWave: "23"
             prune: "true"
           # Node Exporter
           - component: node-exporter
-            path: components/node-exporter
+            chart: prometheus-node-exporter
+            chartVersion: "4.42.0"
+            valuesFile: "values/node-exporter-values.yaml"
             namespace: monitoring
-            repoURL: https://git.local.test/k8s/argocd-structure.git
-            targetRevision: HEAD
+            repoURL: https://git.local.test/k8s/charts.git
+            targetRevision: 4.42.0
             syncWave: "24"
             prune: "true"
           # Kube-State-Metrics
           - component: kube-state-metrics
-            path: components/kube-state-metrics
+            chart: kube-state-metrics
+            chartVersion: "5.31.0"
+            valuesFile: "values/kube-state-metrics-values.yaml"
             namespace: monitoring
-            repoURL: https://git.local.test/k8s/argocd-structure.git
-            targetRevision: HEAD
+            repoURL: https://git.local.test/k8s/charts.git
+            targetRevision: 5.31.0
             syncWave: "25"
             prune: "true"
           # OPA Gatekeeper (политики безопасности)
           - component: opa-gatekeeper
-            path: components/opa-gatekeeper
+            chart: gatekeeper
+            chartVersion: "3.19.0"
+            valuesFile: "values/opa-gatekeeper-values.yaml"
             namespace: gatekeeper-system
-            repoURL: https://git.local.test/k8s/argocd-structure.git
-            targetRevision: HEAD
+            repoURL: https://git.local.test/k8s/charts.git
+            targetRevision: 3.19.0
             syncWave: "30"
             prune: "true"
           # MetalLB (LoadBalancer)
           - component: metallb
-            path: components/metallb
+            chart: metallb
+            chartVersion: "0.15.2"
+            valuesFile: "values/metallb-values.yaml"
             namespace: metallb-system
-            repoURL: https://git.local.test/k8s/argocd-structure.git
-            targetRevision: HEAD
+            repoURL: https://git.local.test/k8s/charts.git
+            targetRevision: 0.15.2
             syncWave: "40"
             prune: "true"
   
@@ -113,8 +139,15 @@ spec:
       project: default
       source:
         repoURL: '{{repoURL}}'
-        targetRevision: '{{targetRevision}}'
-        path: '{{path}}'
+        chart: '{{chart}}'
+        targetRevision: '{{chartVersion}}'
+        helm:
+          releaseName: '{{component}}'
+          valueFiles:
+            - $values/{{valuesFile}}
+          parameters:
+            - name: global.imagePullPolicy
+              value: "IfNotPresent"
       destination:
         server: https://kubernetes.default.svc
         namespace: '{{namespace}}'
@@ -127,6 +160,7 @@ spec:
           - PrunePropagationPolicy=foreground
           - PruneLast=true
           - RespectIgnoreDifferences=true
+          - ServerSideApply=true
         retry:
           limit: 5
           backoff:

@@ -1,0 +1,397 @@
+# Глобальные переменные для всех компонентов ArgoCD
+# Этот файл используется как базовый для генерации values для каждого компонента
+# Все значения соответствуют требованиям из kuber.txt для offline-развертывания
+
+# =============================================================================
+# ГЛОБАЛЬНЫЕ НАСТРОЙКИ РЕПОЗИТОРИЕВ И REGISTRY
+# =============================================================================
+global:
+  # Локальный Git репозиторий с манифестами и чартами
+  gitRepoURL: "https://git.local.test/k8s/argocd-structure.git"
+  gitTargetRevision: "main"
+  
+  # Локальный Harbor registry для всех образов
+  harborRegistry: "harbor.local.test:8443"
+  harborPathPrefix: "library"
+  
+  # Настройки сети (для offline режима)
+  imagePullPolicy: "IfNotPresent"
+  privateRegistry: true
+
+# =============================================================================
+# CALICO CNI - Параметры
+# =============================================================================
+calico:
+  enabled: true
+  version: "v3.30.7"
+  namespace: "kube-system"
+  syncWave: "-10"
+  prune: false
+  
+  # Сетевые настройки из kuber.txt
+  networking:
+    ipipMode: "Never"
+    vxlanMode: "CrossSubnet"
+    natOutgoing: "Disabled"
+    encapsulation: "VXLANCrossSubnet"
+    
+  # Детектирование интерфейса
+  ipAutodetectionMethod: "interface=enp1s0"
+  
+  # MTU настройки
+  felix:
+    vxlanMTU: 1450
+    
+  # Образы (полные пути к локальному registry)
+  images:
+    node: "harbor.local.test:8443/library/docker.io/calico/node:v3.30.7"
+    kubeControllers: "harbor.local.test:8443/library/docker.io/calico/kube-controllers:v3.30.7"
+    cni: "harbor.local.test:8443/library/docker.io/calico/cni:v3.30.7"
+    typha: "harbor.local.test:8443/library/docker.io/calico/typha:v3.30.7"
+
+# =============================================================================
+# CERT-MANAGER - Параметры
+# =============================================================================
+certManager:
+  enabled: true
+  version: "v1.19.4"
+  namespace: "cert-manager"
+  syncWave: "0"
+  prune: true
+  installCRDs: true
+  
+  # Образы
+  images:
+    controller: "harbor.local.test:8443/library/quay.io/jetstack/cert-manager-controller"
+    cainjector: "harbor.local.test:8443/library/quay.io/jetstack/cert-manager-cainjector"
+    webhook: "harbor.local.test:8443/library/quay.io/jetstack/cert-manager-webhook"
+    startupapicheck: "harbor.local.test:8443/library/quay.io/jetstack/cert-manager-startupapicheck"
+  
+  # Vault Issuer настройки
+  vaultIssuer:
+    enabled: true
+    server: "https://vault.local.test:8200"
+    path: "pki_int/sign/k8s-api"
+    secretName: "vault-token"
+
+# =============================================================================
+# ISTIO SERVICE MESH - Параметры
+# =============================================================================
+istio:
+  enabled: true
+  version: "1.26.0"
+  namespace: "istio-system"
+  syncWave: "10"
+  prune: true
+  
+  # Компоненты для установки
+  components:
+    base:
+      enabled: true
+      syncWave: "10"
+    istiod:
+      enabled: true
+      syncWave: "11"
+    cni:
+      enabled: true
+      syncWave: "12"
+    ingressGateway:
+      enabled: true
+      syncWave: "13"
+    egressGateway:
+      enabled: false
+      
+  # Образы
+  images:
+    pilot: "harbor.local.test:8443/library/docker.io/istio/pilot"
+    proxyv2: "harbor.local.test:8443/library/docker.io/istio/proxyv2"
+    installer: "harbor.local.test:8443/library/docker.io/istio/installer"
+
+# =============================================================================
+# VICTORIAMETRICS - Параметры
+# =============================================================================
+victoriaMetrics:
+  enabled: true
+  version: "v1.139.0"
+  namespace: "monitoring"
+  syncWave: "20"
+  prune: true
+  
+  # Хранилище
+  storage:
+    enabled: true
+    size: "50Gi"
+    storageClass: "nfs-storage"
+    accessModes:
+      - ReadWriteOnce
+      
+  # Образ
+  image:
+    repository: "harbor.local.test:8443/library/victoriametrics/victoria-metrics"
+    tag: "v1.139.0"
+    
+  # Порт
+  port: 8428
+  
+  # Ресурсы
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "4Gi"
+      cpu: "2000m"
+
+# =============================================================================
+# VMAGENT - Параметры
+# =============================================================================
+vmagent:
+  enabled: true
+  version: "v1.139.0"
+  namespace: "monitoring"
+  syncWave: "21"
+  prune: true
+  
+  # Образ
+  image:
+    repository: "harbor.local.test:8443/library/victoriametrics/vmagent"
+    tag: "v1.139.0"
+    
+  # Remote write в VictoriaMetrics
+  remoteWrite:
+    url: "http://victoria-metrics.monitoring.svc:8428/api/v1/write"
+    
+  # Сбор метрик
+  scrapeInterval: "30s"
+  
+  # Ресурсы
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "1Gi"
+      cpu: "500m"
+
+# =============================================================================
+# GRAFANA - Параметры
+# =============================================================================
+grafana:
+  enabled: true
+  version: "11.6.0"
+  namespace: "monitoring"
+  syncWave: "22"
+  prune: true
+  
+  # Образ
+  image:
+    repository: "harbor.local.test:8443/library/grafana/grafana"
+    tag: "11.6.0"
+    
+  # DataSource (VictoriaMetrics)
+  datasources:
+    victoriametrics:
+      enabled: true
+      url: "http://victoria-metrics.monitoring.svc:8428"
+      
+  # Persistence
+  persistence:
+    enabled: true
+    size: "10Gi"
+    storageClass: "nfs-storage"
+    
+  # Service
+  service:
+    type: "ClusterIP"
+    port: 3000
+    
+  # Ресурсы
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "1Gi"
+      cpu: "500m"
+
+# =============================================================================
+# VICTORIALOGS - Параметры
+# =============================================================================
+victoriaLogs:
+  enabled: true
+  version: "v1.36.0"
+  namespace: "monitoring"
+  syncWave: "23"
+  prune: true
+  
+  # Хранилище
+  storage:
+    enabled: true
+    size: "100Gi"
+    storageClass: "nfs-storage"
+    
+  # Образ
+  image:
+    repository: "harbor.local.test:8443/library/victoriametrics/victoria-logs"
+    tag: "v1.36.0"
+    
+  # Порт
+  port: 9428
+  
+  # Ресурсы
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "4Gi"
+      cpu: "2000m"
+
+# =============================================================================
+# NODE EXPORTER - Параметры
+# =============================================================================
+nodeExporter:
+  enabled: true
+  version: "v1.10.0"
+  namespace: "monitoring"
+  syncWave: "24"
+  prune: true
+  
+  # Образ
+  image:
+    repository: "harbor.local.test:8443/library/prometheus/node-exporter"
+    tag: "v1.10.0"
+    
+  # Port
+  port: 9100
+  
+  # Ресурсы
+  resources:
+    requests:
+      memory: "64Mi"
+      cpu: "50m"
+    limits:
+      memory: "128Mi"
+      cpu: "100m"
+
+# =============================================================================
+# KUBE-STATE-METRICS - Параметры
+# =============================================================================
+kubeStateMetrics:
+  enabled: true
+  version: "v2.17.0"
+  namespace: "monitoring"
+  syncWave: "25"
+  prune: true
+  
+  # Образ
+  image:
+    repository: "harbor.local.test:8443/library/registry.k8s.io/kube-state-metrics/kube-state-metrics"
+    tag: "v2.17.0"
+    
+  # Port
+  port: 8080
+  
+  # Ресурсы
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+
+# =============================================================================
+# OPA GATEKEEPER - Параметры
+# =============================================================================
+opaGatekeeper:
+  enabled: true
+  version: "v3.19.0"
+  namespace: "gatekeeper-system"
+  syncWave: "30"
+  prune: true
+  
+  # Образы
+  images:
+    gatekeeper: "harbor.local.test:8443/library/openpolicyagent/gatekeeper"
+    gatekeeper-crds: "harbor.local.test:8443/library/openpolicyagent/gatekeeper-crds"
+    
+  # Audit
+  audit:
+    enabled: true
+    interval: "60s"
+    
+  # Webhook
+  webhook:
+    enabled: true
+    timeout: "3s"
+    
+  # Ресурсы
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "1Gi"
+      cpu: "1000m"
+
+# =============================================================================
+# METALLB - Параметры
+# =============================================================================
+metalLB:
+  enabled: true
+  version: "v0.15.2"
+  namespace: "metallb-system"
+  syncWave: "40"
+  prune: true
+  
+  # Режим работы
+  mode: "layer2"  # или layer3 (bgp)
+  
+  # Пул адресов (из kuber.txt)
+  ipAddressPools:
+    - name: "default-pool"
+      addresses:
+        - "192.168.100.100-192.168.100.200"
+      autoAssign: true
+      
+  # L2 Advertisement
+  l2Advertisements:
+    - name: "default-l2"
+      ipAddressPool: "default-pool"
+      
+  # Образы
+  images:
+    controller: "harbor.local.test:8443/library/quay.io/metallb/controller"
+    speaker: "harbor.local.test:8443/library/quay.io/metallb/speaker"
+    
+  # Ресурсы
+  resources:
+    requests:
+      memory: "64Mi"
+      cpu: "50m"
+    limits:
+      memory: "256Mi"
+      cpu: "200m"
+
+# =============================================================================
+# ARGOCD НАСТРОЙКИ
+# =============================================================================
+argocd:
+  namespace: "argocd"
+  
+  # Синхронизация
+  syncPolicy:
+    automated:
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+      - RespectIgnoreDifferences=true
+    retry:
+      limit: 5
+      backoff:
+        duration: "5s"
+        factor: 2
+        maxDuration: "3m"

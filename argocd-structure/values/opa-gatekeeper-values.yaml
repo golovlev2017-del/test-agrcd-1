@@ -1,0 +1,68 @@
+# OPA Gatekeeper Values
+# Наследует глобальные настройки из global-values.yaml
+
+global:
+  imagePullPolicy: IfNotPresent
+
+# Образы
+image:
+  gatekeeper:
+    repository: harbor.local.test:8443/library/openpolicyagent/gatekeeper
+    tag: v3.19.0
+  crds:
+    repository: harbor.local.test:8443/library/openpolicyagent/gatekeeper-crds
+    tag: v3.19.0
+
+# Audit
+audit:
+  enabled: true
+  interval: "60s"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+# Webhook
+webhook:
+  enabled: true
+  timeoutSeconds: 3
+  failurePolicy: Ignore  # или Fail для строгого режима
+  namespaceSelector:
+    matchExpressions:
+      - key: admission.gatekeeper.sh/ignore
+        operator: DoesNotExist
+
+# Ресурсы контроллера
+controller:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+# Node Selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity: {}
+
+# Prometheus мониторинг
+prometheus:
+  enabled: true
+  serviceMonitor:
+    enabled: false
+    
+# Логирование
+logLevel: INFO
+
+# Pod Disruption Budget
+podDisruptionBudget:
+  enabled: false
