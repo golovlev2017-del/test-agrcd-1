@@ -1,0 +1,36 @@
+# vmagent Installation for ArgoCD
+# OFFLINE MODE: Все образы должны быть в harbor.local.test:8443
+# 
+# Параметры из kuber.txt:
+# - RBAC: доступ к endpointslices.discovery.k8s.io
+# - cadvisor: insecure_skip_verify: true (kubelet self-signed cert без IP SAN)
+# - Drop init-контейнеров для Istio sidecar
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: vmagent
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "21"
+spec:
+  project: default
+  source:
+    repoURL: https://git.local.test/k8s/manifests.git
+    targetRevision: main
+    path: manifests/vmagent
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m

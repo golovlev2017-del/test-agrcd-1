@@ -1,0 +1,56 @@
+# OPA Gatekeeper Installation for ArgoCD
+# OFFLINE MODE: Все чарты и образы должны быть в harbor.local.test:8443
+# 
+# Параметры из kuber.txt:
+# - Version: v3.22.0
+# - Образы:
+#   - gatekeeper: harbor.local.test:8443/library/openpolicyagent/gatekeeper:v3.22.0
+#   - crds: harbor.local.test:8443/library/openpolicyagent/gatekeeper-crds:v3.22.0
+# - postInstall.labelNamespace.enabled=false (curlimages/curl недоступен)
+# - postUpgrade.labelNamespace.enabled=false
+# - ⚠️ Webhook deadlock: требуется правильная последовательность установки
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: opa-gatekeeper
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "30"
+spec:
+  project: default
+  source:
+    repoURL: https://git.local.test/k8s/charts.git
+    targetRevision: v3.22.0
+    path: charts/gatekeeper
+    helm:
+      releaseName: gatekeeper
+      values: |
+        image:
+          repository: harbor.local.test:8443/library/openpolicyagent/gatekeeper
+          tag: v3.22.0
+        crd:
+          repository: harbor.local.test:8443/library/openpolicyagent/gatekeeper-crds
+          tag: v3.22.0
+        postInstall:
+          labelNamespace:
+            enabled: false  # curlimages/curl недоступен в offline
+        postUpgrade:
+          labelNamespace:
+            enabled: false
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: gatekeeper-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m

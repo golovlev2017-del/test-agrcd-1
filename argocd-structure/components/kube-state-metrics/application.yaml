@@ -1,0 +1,35 @@
+# Kube-State-Metrics Installation for ArgoCD
+# OFFLINE MODE: Все образы должны быть в harbor.local.test:8443
+# 
+# Параметры из kuber.txt:
+# - Version: v2.18.0
+# - Образ: harbor.local.test:8443/library/kube-state-metrics/kube-state-metrics:v2.18.0
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kube-state-metrics
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "25"
+spec:
+  project: default
+  source:
+    repoURL: https://git.local.test/k8s/charts.git
+    targetRevision: main
+    path: charts/prometheus-community/kube-state-metrics
+    helm:
+      releaseName: kube-state-metrics
+      values: |
+        image:
+          repository: harbor.local.test:8443/library/kube-state-metrics/kube-state-metrics
+          tag: v2.18.0
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

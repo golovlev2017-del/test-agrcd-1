@@ -1,0 +1,48 @@
+# Calico CNI Installation for ArgoCD
+# OFFLINE MODE: Все образы должны быть предварительно загружены в harbor.local.test:8443
+# 
+# Ключевые параметры из kuber.txt:
+# - CALICO_IPV4POOL_IPIP: Never
+# - CALICO_IPV4POOL_VXLAN: CrossSubnet
+# - IP_AUTODETECTION_METHOD: interface=enp1s0
+# - FELIX_VXLANMTU: 1450
+# - Health probes: exec (не httpGet)
+# - prune: false (CNI нельзя удалять через ArgoCD)
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: calico
+  namespace: argocd
+  annotations:
+    # Calico устанавливается первым, до других компонентов
+    argocd.argoproj.io/sync-wave: "-10"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://docs.tigera.io/calico/latest/manifests
+    targetRevision: HEAD
+    path: manifests
+    # В offline режиме использовать локальный git репозиторий с манифестами
+    # repoURL: https://git.local.test/k8s/calico-manifests.git
+    # targetRevision: v3.30.7
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kube-system
+  syncPolicy:
+    automated:
+      prune: false  # ВАЖНО: CNI нельзя прунить!
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+      - CreateNamespace=true
+      - PruneLast=false
+      - ApplyOutOfSyncOnly=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m

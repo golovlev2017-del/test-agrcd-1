@@ -1,0 +1,79 @@
+# Cert-Manager Installation for ArgoCD
+# OFFLINE MODE: Все чарты и образы должны быть в harbor.local.test:8443
+# 
+# Параметры из kuber.txt:
+# - Version: v1.19.4
+# - installCRDs: true
+# - Образы:
+#   - controller: harbor.local.test:8443/library/quay.io/jetstack/cert-manager-controller:v1.19.4
+#   - cainjector: harbor.local.test:8443/library/quay.io/jetstack/cert-manager-cainjector:v1.19.4
+#   - webhook: harbor.local.test:8443/library/quay.io/jetstack/cert-manager-webhook:v1.19.4
+#   - startupapicheck: harbor.local.test:8443/library/quay.io/jetstack/cert-manager-startupapicheck:v1.19.4
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cert-manager
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  project: default
+  source:
+    repoURL: https://git.local.test/k8s/charts.git
+    targetRevision: v1.19.4
+    path: charts/cert-manager
+    helm:
+      releaseName: cert-manager
+      values: |
+        installCRDs: true
+        image:
+          repository: harbor.local.test:8443/library/quay.io/jetstack/cert-manager-controller
+          tag: v1.19.4
+        cainjector:
+          image:
+            repository: harbor.local.test:8443/library/quay.io/jetstack/cert-manager-cainjector
+            tag: v1.19.4
+        webhook:
+          image:
+            repository: harbor.local.test:8443/library/quay.io/jetstack/cert-manager-webhook
+            tag: v1.19.4
+        startupapicheck:
+          enabled: true
+          image:
+            repository: harbor.local.test:8443/library/quay.io/jetstack/cert-manager-startupapicheck
+            tag: v1.19.4
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: cert-manager
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+---
+# Vault ClusterIssuer (настраивается после установки Vault)
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: vault-issuer
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  vault:
+    server: https://vault.local.test:8200
+    path: pki_int/sign/k8s-api
+    # caBundle будет добавлен через secretRef или напрямую
+    auth:
+      tokenSecretRef:
+        name: vault-token
+        key: token

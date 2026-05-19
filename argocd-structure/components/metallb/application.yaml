@@ -1,0 +1,72 @@
+# MetalLB Installation for ArgoCD
+# OFFLINE MODE: Все чарты и образы должны быть в harbor.local.test:8443
+# 
+# Параметры из kuber.txt:
+# - Version: v0.15.3
+# - Образы:
+#   - controller: harbor.local.test:8443/quay.io/metallb/controller:v0.15.3
+#   - speaker: harbor.local.test:8443/quay.io/metallb/speaker:v0.15.3
+# - ⚠️ Конфликт kube-vip + MetalLB: требуется правильная конфигурация IP диапазонов
+# - Speaker только на worker'ах (nodeSelector)
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: metallb
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "40"
+spec:
+  project: default
+  source:
+    repoURL: https://git.local.test/k8s/charts.git
+    targetRevision: v0.15.3
+    path: charts/metallb/metallb
+    helm:
+      releaseName: metallb
+      values: |
+        image:
+          controller:
+            repository: harbor.local.test:8443/quay.io/metallb/controller
+            tag: v0.15.3
+          speaker:
+            repository: harbor.local.test:8443/quay.io/metallb/speaker
+            tag: v0.15.3
+        # Speaker только на worker'ах
+        speaker:
+          nodeSelector:
+            node-role.kubernetes.io/worker: ""
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: metallb-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+# IPAddressPool конфигурация
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: default-pool
+  namespace: metallb-system
+  annotations:
+    argocd.argoproj.io/sync-wave: "41"
+spec:
+  addresses:
+    - 192.168.122.100-192.168.122.200
+  autoAssign: true
+---
+# L2Advertisement
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+  name: default-l2-advertisement
+  namespace: metallb-system
+  annotations:
+    argocd.argoproj.io/sync-wave: "42"
+spec:
+  ipAddressPools:
+    - default-pool

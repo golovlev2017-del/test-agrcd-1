@@ -1,5 +1,7 @@
-# Application для установки всех инфраструктурных компонентов
-# Использует App of Apps паттерн
+# ApplicationSet для установки всех инфраструктурных компонентов
+# Использует паттерн App of Apps с sync-wave для управления порядком установки
+# Все компоненты соответствуют параметрам из kuber.txt
+
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
@@ -9,36 +11,94 @@ spec:
   generators:
     - list:
         elements:
+          # Calico CNI (устанавливается первым, prune=false)
+          - component: calico
+            path: components/calico
+            namespace: kube-system
+            repoURL: https://git.local.test/k8s/argocd-structure.git
+            targetRevision: HEAD
+            syncWave: "-10"
+            prune: "false"
+          # cert-manager + Vault Issuer
           - component: cert-manager
             path: components/cert-manager
             namespace: cert-manager
-            repoURL: https://git.local.test/infrastructure/manifests.git
-            targetRevision: main
-          - component: metallb
-            path: components/metallb
-            namespace: metallb-system
-            repoURL: https://git.local.test/infrastructure/manifests.git
-            targetRevision: main
+            repoURL: https://git.local.test/k8s/argocd-structure.git
+            targetRevision: HEAD
+            syncWave: "0"
+            prune: "true"
+          # Istio Service Mesh (base → istiod → cni → policies)
           - component: istio
             path: components/istio
             namespace: istio-system
-            repoURL: https://git.local.test/infrastructure/manifests.git
-            targetRevision: main
+            repoURL: https://git.local.test/k8s/argocd-structure.git
+            targetRevision: HEAD
+            syncWave: "10"
+            prune: "true"
+          # VictoriaMetrics (метрики)
+          - component: victoriametrics
+            path: components/victoriametrics
+            namespace: monitoring
+            repoURL: https://git.local.test/k8s/argocd-structure.git
+            targetRevision: HEAD
+            syncWave: "20"
+            prune: "true"
+          # vmagent (сбор метрик)
+          - component: vmagent
+            path: components/vmagent
+            namespace: monitoring
+            repoURL: https://git.local.test/k8s/argocd-structure.git
+            targetRevision: HEAD
+            syncWave: "21"
+            prune: "true"
+          # Grafana (визуализация)
           - component: grafana
             path: components/grafana
             namespace: monitoring
-            repoURL: https://git.local.test/infrastructure/manifests.git
-            targetRevision: main
+            repoURL: https://git.local.test/k8s/argocd-structure.git
+            targetRevision: HEAD
+            syncWave: "22"
+            prune: "true"
+          # VictoriaLogs (логи)
           - component: victorialogs
             path: components/victorialogs
-            namespace: logging
-            repoURL: https://git.local.test/infrastructure/manifests.git
-            targetRevision: main
+            namespace: monitoring
+            repoURL: https://git.local.test/k8s/argocd-structure.git
+            targetRevision: HEAD
+            syncWave: "23"
+            prune: "true"
+          # Node Exporter
+          - component: node-exporter
+            path: components/node-exporter
+            namespace: monitoring
+            repoURL: https://git.local.test/k8s/argocd-structure.git
+            targetRevision: HEAD
+            syncWave: "24"
+            prune: "true"
+          # Kube-State-Metrics
+          - component: kube-state-metrics
+            path: components/kube-state-metrics
+            namespace: monitoring
+            repoURL: https://git.local.test/k8s/argocd-structure.git
+            targetRevision: HEAD
+            syncWave: "25"
+            prune: "true"
+          # OPA Gatekeeper (политики безопасности)
           - component: opa-gatekeeper
             path: components/opa-gatekeeper
             namespace: gatekeeper-system
-            repoURL: https://git.local.test/infrastructure/manifests.git
-            targetRevision: main
+            repoURL: https://git.local.test/k8s/argocd-structure.git
+            targetRevision: HEAD
+            syncWave: "30"
+            prune: "true"
+          # MetalLB (LoadBalancer)
+          - component: metallb
+            path: components/metallb
+            namespace: metallb-system
+            repoURL: https://git.local.test/k8s/argocd-structure.git
+            targetRevision: HEAD
+            syncWave: "40"
+            prune: "true"
   
   template:
     metadata:
@@ -47,6 +107,8 @@ spec:
       labels:
         app.kubernetes.io/name: '{{component}}'
         app.kubernetes.io/part-of: infrastructure
+      annotations:
+        argocd.argoproj.io/sync-wave: '{{syncWave}}'
     spec:
       project: default
       source:
@@ -58,7 +120,7 @@ spec:
         namespace: '{{namespace}}'
       syncPolicy:
         automated:
-          prune: true
+          prune: {{prune}}
           selfHeal: true
         syncOptions:
           - CreateNamespace=true

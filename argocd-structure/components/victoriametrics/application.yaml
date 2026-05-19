@@ -1,0 +1,38 @@
+# VictoriaMetrics Installation for ArgoCD
+# OFFLINE MODE: Все образы должны быть в harbor.local.test:8443
+# 
+# Параметры из kuber.txt:
+# - Version: v1.139.0
+# - Образ: harbor.local.test:8443/library/victoriametrics/victoria-metrics:v1.139.0
+# - PVC: 50Gi (NFS)
+# - Port: 8428
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: victoriametrics
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "20"
+spec:
+  project: default
+  source:
+    repoURL: https://git.local.test/k8s/manifests.git
+    targetRevision: main
+    path: manifests/victoriametrics
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m

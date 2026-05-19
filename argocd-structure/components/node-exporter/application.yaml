@@ -1,0 +1,35 @@
+# Node Exporter Installation for ArgoCD
+# OFFLINE MODE: Все образы должны быть в harbor.local.test:8443
+# 
+# Параметры из kuber.txt:
+# - Version: v1.9.1
+# - Образ: harbor.local.test:8443/library/prom/node-exporter:v1.9.1
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: node-exporter
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "24"
+spec:
+  project: default
+  source:
+    repoURL: https://git.local.test/k8s/charts.git
+    targetRevision: main
+    path: charts/prometheus-community/prometheus-node-exporter
+    helm:
+      releaseName: node-exporter
+      values: |
+        image:
+          repository: harbor.local.test:8443/library/prom/node-exporter
+          tag: v1.9.1
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
