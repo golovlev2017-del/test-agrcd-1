@@ -1,0 +1,63 @@
+# VMAgent Values
+# Наследует глобальные настройки из global-values.yaml
+
+global:
+  imagePullPolicy: IfNotPresent
+
+# Образ
+image:
+  repository: harbor.local.test:8443/library/victoriametrics/vmagent
+  tag: v1.139.0
+  pullPolicy: IfNotPresent
+
+# Remote write в VictoriaMetrics
+remoteWrite:
+  - url: "http://victoria-metrics.monitoring.svc:8428/api/v1/write"
+    # При необходимости добавить auth
+    # basicAuth:
+    #   username: ...
+    #   password: ...
+
+# Service
+service:
+  enabled: true
+  type: ClusterIP
+  port: 8429
+
+# Ресурсы
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 1Gi
+
+# Сбор метрик (scrape configs)
+# Можно добавить свои target'ы
+extraScrapeConfigs: ""
+# Пример:
+# extraScrapeConfigs: |
+#   - job_name: 'kubernetes-pods'
+#     kubernetes_sd_configs:
+#       - role: pod
+
+# Node Selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity: {}
+
+# Pod Disruption Budget
+podDisruptionBudget:
+  enabled: false
+
+# Prometheus мониторинг самого vmagent
+serviceMonitor:
+  enabled: false
+  
+# Логирование
+logLevel: INFO

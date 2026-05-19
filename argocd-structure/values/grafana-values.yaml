@@ -1,0 +1,90 @@
+# Grafana Values
+# Наследует глобальные настройки из global-values.yaml
+
+global:
+  imagePullPolicy: IfNotPresent
+
+# Образ
+image:
+  repository: harbor.local.test:8443/library/grafana/grafana
+  tag: 11.6.0
+  pullPolicy: IfNotPresent
+
+# Администратор
+adminUser: admin
+adminPassword: "changeme"  # ЗАМЕНИТЬ НА СЕКРЕТ!
+
+# Service
+service:
+  enabled: true
+  type: ClusterIP
+  port: 3000
+  targetPort: 3000
+
+# Хранилище для дашбордов
+persistence:
+  enabled: true
+  type: pvc
+  size: 10Gi
+  storageClass: nfs-storage
+  accessModes:
+    - ReadWriteOnce
+
+# Ресурсы
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 1Gi
+
+# Data Sources (VictoriaMetrics)
+datasources:
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+      - name: VictoriaMetrics
+        type: prometheus
+        url: http://victoria-metrics.monitoring.svc:8428
+        access: proxy
+        isDefault: true
+        editable: true
+
+# Dashboards
+dashboards:
+  default:
+    kubernetes-cluster:
+      gnetId: 6417
+      revision: 1
+      datasource: VictoriaMetrics
+    kubernetes-pods:
+      gnetId: 6336
+      revision: 1
+      datasource: VictoriaMetrics
+
+# Node Selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity: {}
+
+# Sidecar для автозагрузки дашбордов
+sidecar:
+  dashboards:
+    enabled: true
+    searchNamespace: ALL
+  datasources:
+    enabled: true
+    defaultDatasourceEnabled: false
+
+# Prometheus мониторинг
+serviceMonitor:
+  enabled: false
+
+# Ingress (при необходимости)
+ingress:
+  enabled: false

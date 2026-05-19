@@ -1,0 +1,64 @@
+# VictoriaMetrics Values
+# Наследует глобальные настройки из global-values.yaml
+
+global:
+  imagePullPolicy: IfNotPresent
+
+# Образ
+image:
+  repository: harbor.local.test:8443/library/victoriametrics/victoria-metrics
+  tag: v1.139.0
+  pullPolicy: IfNotPresent
+
+# Порт
+server:
+  port: 8428
+  
+  # Хранилище
+  persistentVolume:
+    enabled: true
+    size: 50Gi
+    storageClass: nfs-storage
+    accessModes:
+      - ReadWriteOnce
+      
+  # Ресурсы
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "2"
+      memory: 4Gi
+      
+  # Настройки хранения
+  retentionPeriod: "1"  # 1 месяц
+  
+  # Дополнительные аргументы
+  extraArgs:
+    httpListenAddr: :8428
+    storageDataPath: /victoria-metrics-data
+    
+# Service
+service:
+  enabled: true
+  type: ClusterIP
+  port: 8428
+
+# Node Selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity: {}
+
+# Метрики для Prometheus
+serviceMonitor:
+  enabled: false
+  namespace: monitoring
+  
+# Pod Disruption Budget
+podDisruptionBudget:
+  enabled: false

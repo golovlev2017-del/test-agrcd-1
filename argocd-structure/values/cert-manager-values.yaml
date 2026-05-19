@@ -1,0 +1,56 @@
+# Cert-Manager Values
+# Наследует глобальные настройки из global-values.yaml
+
+global:
+  imagePullPolicy: IfNotPresent
+
+# Установка CRD
+installCRDs: true
+
+# Образы (локальный registry)
+image:
+  repository: harbor.local.test:8443/library/quay.io/jetstack/cert-manager-controller
+  tag: v1.19.4
+
+cainjector:
+  image:
+    repository: harbor.local.test:8443/library/quay.io/jetstack/cert-manager-cainjector
+    tag: v1.19.4
+
+webhook:
+  image:
+    repository: harbor.local.test:8443/library/quay.io/jetstack/cert-manager-webhook
+    tag: v1.19.4
+
+startupapicheck:
+  enabled: true
+  image:
+    repository: harbor.local.test:8443/library/quay.io/jetstack/cert-manager-startupapicheck
+    tag: v1.19.4
+
+# Ресурсы
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+
+# Логирование
+logLevel: 2
+
+# Лидер选举
+leaderElection:
+  namespace: cert-manager
+
+# Webhook настройки
+webhook:
+  timeoutSeconds: 30
+  servicePort: 443
+
+# Prometheus мониторинг
+prometheus:
+  enabled: true
+  servicemonitor:
+    enabled: false

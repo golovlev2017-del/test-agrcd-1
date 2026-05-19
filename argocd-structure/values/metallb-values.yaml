@@ -1,0 +1,99 @@
+# MetalLB Values
+# Наследует глобальные настройки из global-values.yaml
+# Режим: L2 только (BGP отключен)
+# 2 пула адресов: ingress и egress
+
+global:
+  imagePullPolicy: IfNotPresent
+
+# Образы
+controller:
+  image:
+    repository: harbor.local.test:8443/library/quay.io/metallb/controller
+    tag: v0.15.2
+    
+speaker:
+  image:
+    repository: harbor.local.test:8443/library/quay.io/metallb/speaker
+    tag: v0.15.2
+
+# Режим работы: layer2 (BGP отключен)
+mode: layer2
+
+# BGP отключен
+bgp:
+  enabled: false
+
+# L2 настройки
+l2Advertisement:
+  enabled: true
+  
+# Пул адресов - 2 пула: ingress и egress (из kuber.txt)
+ipAddressPools:
+  # Пул для ingress трафика (входящие соединения)
+  - name: ingress-pool
+    addresses:
+      - 192.168.100.100-192.168.100.150
+    autoAssign: true
+    avoidBuggyIPs: true
+    
+  # Пул для egress трафика (исходящие соединения)
+  - name: egress-pool
+    addresses:
+      - 192.168.100.151-192.168.100.200
+    autoAssign: true
+    avoidBuggyIPs: true
+    
+# L2 Advertisement для обоих пулов
+l2Advertisements:
+  # Реклама для ingress пула
+  - name: ingress-l2
+    ipAddressPool: ingress-pool
+    nodeSelectors: []
+    
+  # Реклама для egress пула
+  - name: egress-l2
+    ipAddressPool: egress-pool
+    nodeSelectors: []
+
+# Ресурсы контроллера
+controller:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+      
+# Ресурсы speaker
+speaker:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+# Node Selector
+nodeSelector:
+  kubernetes.io/os: linux
+
+# Tolerations для работы на всех нодах
+tolerations:
+  - key: node-role.kubernetes.io/control-plane
+    operator: Exists
+    effect: NoSchedule
+  - key: node-role.kubernetes.io/master
+    operator: Exists
+    effect: NoSchedule
+
+# Prometheus мониторинг
+prometheus:
+  enabled: true
+  serviceMonitor:
+    enabled: false
+    
+# Логирование
+logLevel: info
